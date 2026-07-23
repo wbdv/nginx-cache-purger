@@ -19,6 +19,7 @@ to a `/purge` location that Nginx handles; everything else is Nginx configuratio
 - [Verifying it works](#verifying-it-works)
 - [What gets purged, and when](#what-gets-purged-and-when)
 - [Filters](#filters)
+- [Purging behind a proxy or Cloudflare](#purging-behind-a-proxy-or-cloudflare)
 - [Troubleshooting](#troubleshooting)
 - [Credits](#credits)
 - [Changelog](#changelog)
@@ -322,6 +323,79 @@ add_filter( 'ncp_paths_for_post', function ( $paths, $post ) {
 
 ---
 
+## Purging behind a proxy or Cloudflare
+
+By default the plugin sends the purge to your site's own address (`home_url()`).
+When nginx serves the site directly — Cloudflare **grey-clouded** ("DNS only"),
+or no CDN at all — that request loops straight back to nginx from the server's
+own IP and everything works. Nothing to configure.
+
+It breaks when the site is **orange-clouded** (Cloudflare "Proxied") or sits
+behind any other reverse proxy. In the Cloudflare DNS panel the cloud icon next
+to a record is the toggle: **orange = Proxied** (traffic runs through Cloudflare),
+**grey = DNS only** (traffic goes straight to your origin). Only the orange case
+is a problem.
+
+With the site orange-clouded, `home_url()` no longer resolves to your server —
+it resolves to Cloudflare. So the purge request leaves your box, crosses the
+internet to Cloudflare, and only then comes back to your origin. Along the way:
+
+- Cloudflare rewrites the source address, so the IP that finally reaches your
+  `/purge` location may not be in its `allow` list → **403, purge silently
+  fails**.
+- Cloudflare's WAF or "Under Attack" mode can block the request before it ever
+  reaches the origin.
+- Even when it works, it is a pointless round-trip to Cloudflare to purge a
+  cache that lives on the same machine.
+
+### The fix: purge over localhost
+
+Point the purge at `127.0.0.1` instead of the public hostname. The request never
+leaves the server, never touches Cloudflare, and arrives from `127.0.0.1`, which
+your `allow` list already trusts:
+
+```php
+// Send purges to nginx directly, bypassing the proxy in front of the site.
+add_filter( 'ncp_purge_endpoint', function () {
+    return 'http://127.0.0.1';
+} );
+add_filter( 'ncp_purge_sslverify', '__return_false' );
+```
+
+Two details make this reliable — miss either and the purge quietly does nothing:
+
+1. **Use `http://`, not `https://`.** Over loopback plain HTTP is safe (it never
+   leaves the machine), and it avoids a certificate-name mismatch: nginx would
+   present the site's certificate, which is issued for the domain, not for
+   `127.0.0.1`. (`ncp_purge_sslverify` → false covers the case where you must use
+   https anyway.)
+
+2. **Hardcode `https` in the purge location's key.** Your cache key is
+   `"$scheme$host$request_uri"`, and real visitors store pages under `https…`.
+   A purge arriving over `http://127.0.0.1` would otherwise build an `http…` key
+   that never matches the stored `https…` entry. Pin the scheme so a localhost
+   purge still hits the cached pages:
+
+   ```nginx
+   location ~ ^/purge(/.*) {
+       allow 127.0.0.1;
+       allow ::1;
+       deny  all;
+
+       cache_purge_response_type json;
+       fastcgi_cache_purge wpcache "https$host$1";   # https, not $scheme
+   }
+   ```
+
+   With the endpoint set to localhost you can drop the server's public IP from
+   the `allow` list entirely — only loopback is needed.
+
+If the proxy is not Cloudflare but a separate front-end (HAProxy, a TLS-
+terminating nginx), the same fix applies: purge the origin directly over
+`127.0.0.1` rather than the public hostname the proxy answers.
+
+---
+
 ## Troubleshooting
 
 **Nothing is ever cached (always `MISS`).** Check `X-Cache-Skip` /
@@ -340,9 +414,10 @@ grep -a -m1 -o "KEY: [^\r]*" /var/cache/nginx/wpcache/*/*/* | head
 
 **Purges return `403`.** The request is not coming from an address in the
 `allow` list. The plugin calls the site's public hostname, so the source is
-usually the server's own public IP. Behind a proxy with `real_ip_header`,
-`$remote_addr` becomes the visitor's IP instead — point the plugin at the origin
-with `ncp_purge_endpoint`.
+usually the server's own public IP. Behind Cloudflare (orange-clouded) or another
+proxy the source becomes unpredictable — see
+[Purging behind a proxy or Cloudflare](#purging-behind-a-proxy-or-cloudflare) for
+the localhost fix.
 
 **Purge answers `200` but pages stay stale.** A global `open_file_cache` is
 holding descriptors of the deleted cache files — set `open_file_cache off;` in
