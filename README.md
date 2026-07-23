@@ -443,6 +443,21 @@ the original authors for the starting point.
 
 ## Changelog
 
+### 1.1.0
+
+* **Optional background cache warmer.** When enabled, purged URLs are re-fetched
+  on a cron tick so the next visitor gets a HIT instead of paying for the MISS. A
+  full purge warms a bounded set — the home page plus recent posts, capped by a
+  setting — never the whole sitemap at once. Off by default.
+* **Settings page** (Settings → Nginx Cache Purger): warmer toggle, purge
+  endpoint / SSL-verify overrides, a WP-Cron panel (detect + optionally add
+  `DISABLE_WP_CRON` to `wp-config.php`, plus the system-cron line and a last-run
+  canary), and a one-click cache self-test using the `X-FastCGI-Cache` header.
+* Endpoint and SSL-verify are now settable from the page as well as the filters;
+  a code filter still wins.
+* Everything is optional — with nothing configured the plugin behaves exactly as
+  in 1.0.x.
+
 ### 1.0.2
 
 * New purge triggers: a new or edited comment — and approve / unapprove / spam /

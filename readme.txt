@@ -4,7 +4,7 @@ Tags: nginx, cache, purge, fastcgi, woocommerce
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.1.0
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -167,6 +167,18 @@ session cookies — the configuration in README.md does.
 
 == Changelog ==
 
+= 1.1.0 =
+* New: optional background cache warmer. When enabled, purged URLs are re-fetched
+  on a cron tick so visitors keep hitting cached pages. A full purge warms a
+  bounded set (home page + recent posts), never the whole sitemap at once.
+* New: Settings page (Settings -> Nginx Cache Purger) — toggle the warmer, set a
+  purge-endpoint / SSL-verify override, a WP-Cron panel that can add
+  DISABLE_WP_CRON to wp-config.php and shows the last worker run, and a one-click
+  cache self-test built on the X-FastCGI-Cache header.
+* The purge endpoint and SSL-verify can now be set from the Settings page as well
+  as the filters; a code filter still wins.
+* All optional — with nothing configured the plugin behaves exactly as before.
+
 = 1.0.2 =
 * New purge triggers: a new or edited comment (and approve/unapprove/spam/trash)
   now purges the post it belongs to.
@@ -201,6 +213,10 @@ session cookies — the configuration in README.md does.
   WooCommerce product and product-category purging.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Adds an optional background cache warmer and a Settings page. Existing behaviour
+is unchanged unless you turn these on.
 
 = 1.0.2 =
 Adds comment, theme, menu, widget and Customizer purge triggers.

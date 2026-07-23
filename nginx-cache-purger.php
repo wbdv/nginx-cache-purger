@@ -3,7 +3,7 @@
  * Plugin Name: Nginx Cache Purger
  * Plugin URI:  https://github.com/wbdv/nginx-cache-purger
  * Description: Manages Nginx FastCGI cache for WordPress with global and automatic purging for posts, pages, and WooCommerce products/categories.
- * Version:     1.0.2
+ * Version:     1.1.0
  * Author:      wbdv
  * Author URI:  https://www.webdev.ro
  * License:     GPL-2.0+
@@ -15,7 +15,36 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-define( 'NCP_VERSION', '1.0.2' );
+define( 'NCP_VERSION', '1.1.0' );
+
+require_once __DIR__ . '/includes/options.php';
+require_once __DIR__ . '/includes/warmer.php';
+if ( is_admin() ) {
+    require_once __DIR__ . '/includes/settings.php';
+}
+
+/**
+ * Activation: create the warm-queue table and schedule the worker.
+ */
+function ncp_activate() {
+    ncp_warm_install_table();
+    if ( ! wp_next_scheduled( NCP_WARM_CRON ) ) {
+        wp_schedule_event( time() + 60, NCP_WARM_SCHEDULE, NCP_WARM_CRON );
+    }
+}
+register_activation_hook( __FILE__, 'ncp_activate' );
+
+/**
+ * Deactivation: stop the worker. The queue table and options are left in place
+ * (removed only on uninstall) so a reactivate keeps the user's settings.
+ */
+function ncp_deactivate() {
+    $timestamp = wp_next_scheduled( NCP_WARM_CRON );
+    if ( $timestamp ) {
+        wp_unschedule_event( $timestamp, NCP_WARM_CRON );
+    }
+}
+register_deactivation_hook( __FILE__, 'ncp_deactivate' );
 
 /**
  * Add the "Purge Nginx Cache" button to the WordPress admin bar.
@@ -132,7 +161,16 @@ function ncp_purge_endpoint() {
         $host .= ':' . $parts['port'];
     }
 
-    return apply_filters( 'ncp_purge_endpoint', $scheme . '://' . $host );
+    $base = $scheme . '://' . $host;
+
+    // A Settings-page override wins over the home_url() default; a code filter
+    // still wins over both.
+    $option = ncp_get_option( 'purge_endpoint' );
+    if ( ! empty( $option ) ) {
+        $base = $option;
+    }
+
+    return apply_filters( 'ncp_purge_endpoint', $base );
 }
 
 /**
@@ -153,6 +191,30 @@ function ncp_purge_url( $path ) {
     }
 
     return $endpoint . '/purge' . $path;
+}
+
+/**
+ * Purge a single site path and announce it, so features like the warmer can
+ * react without every trigger having to know about them.
+ *
+ * @param string     $path
+ * @param string     $context_type
+ * @param int|string $context_id
+ * @return array Result from _ncp_send_purge_request().
+ */
+function ncp_purge_path( $path, $context_type, $context_id ) {
+    $result = _ncp_send_purge_request( ncp_purge_url( $path ), $context_type, $context_id );
+
+    /**
+     * Fires after a single path has been purged.
+     *
+     * @param string     $path
+     * @param string     $context_type
+     * @param int|string $context_id
+     */
+    do_action( 'ncp_purged_path', $path, $context_type, $context_id );
+
+    return $result;
 }
 
 /**
@@ -182,7 +244,7 @@ function _ncp_send_purge_request( $purge_url, $context_type, $context_id ) {
      */
     $response = wp_remote_get( $purge_url, array(
         'timeout'     => 10,
-        'sslverify'   => apply_filters( 'ncp_purge_sslverify', true ),
+        'sslverify'   => apply_filters( 'ncp_purge_sslverify', (bool) ncp_get_option( 'purge_sslverify' ) ),
         'redirection' => 0,
         'user-agent'  => 'nginx-cache-purger/' . NCP_VERSION . '; ' . home_url( '/' ),
     ) );
@@ -250,6 +312,9 @@ function ncp_handle_purge_request() {
 
     // Call the helper function to send the purge request
     $result = _ncp_send_purge_request( $purge_url, 'all', 'all' );
+
+    /** Fires after the whole cache has been purged. */
+    do_action( 'ncp_purged_all' );
 
     if ( $result['success'] ) {
         wp_send_json_success( array( 'message' => $success_msg ) );
@@ -364,7 +429,7 @@ function ncp_purge_on_transition_post_status( $new_status, $old_status, $post ) 
     }
 
     foreach ( ncp_paths_for_post( $post ) as $path ) {
-        _ncp_send_purge_request( ncp_purge_url( $path ), $post->post_type, $post->ID );
+        ncp_purge_path( $path, $post->post_type, $post->ID );
     }
 }
 add_action( 'transition_post_status', 'ncp_purge_on_transition_post_status', 10, 3 );
@@ -382,7 +447,7 @@ function ncp_purge_on_delete_post( $post_id ) {
     }
 
     foreach ( ncp_paths_for_post( $post ) as $path ) {
-        _ncp_send_purge_request( ncp_purge_url( $path ), $post->post_type, $post_id );
+        ncp_purge_path( $path, $post->post_type, $post_id );
     }
 }
 add_action( 'before_delete_post', 'ncp_purge_on_delete_post' );
@@ -426,9 +491,9 @@ function ncp_purge_on_edit_term( $term_id, $tt_id, $taxonomy ) {
     $parsed_url = wp_parse_url( $permalink );
     $path = isset( $parsed_url['path'] ) ? $parsed_url['path'] : '/';
 
-    _ncp_send_purge_request( ncp_purge_url( $path ), $taxonomy, $term_id );
+    ncp_purge_path( $path, $taxonomy, $term_id );
     // The term's archive is usually linked from the home page / menus too.
-    _ncp_send_purge_request( ncp_purge_url( '/' ), $taxonomy, $term_id );
+    ncp_purge_path( '/', $taxonomy, $term_id );
 }
 add_action( 'edited_term', 'ncp_purge_on_edit_term', 10, 3 );
 add_action( 'create_term', 'ncp_purge_on_edit_term', 10, 3 ); // Also purge on new term creation
@@ -461,8 +526,8 @@ function ncp_purge_on_delete_term( $term_id, $tt_id, $taxonomy, $deleted_term ) 
     $base = ! empty( $taxonomy_object->rewrite['slug'] ) ? $taxonomy_object->rewrite['slug'] : $taxonomy;
     $path = '/' . trim( $base, '/' ) . '/' . $deleted_term->slug . '/';
 
-    _ncp_send_purge_request( ncp_purge_url( $path ), $taxonomy, $term_id );
-    _ncp_send_purge_request( ncp_purge_url( '/' ), $taxonomy, $term_id );
+    ncp_purge_path( $path, $taxonomy, $term_id );
+    ncp_purge_path( '/', $taxonomy, $term_id );
 }
 add_action( 'delete_term', 'ncp_purge_on_delete_term', 10, 4 );
 
@@ -486,6 +551,9 @@ function ncp_purge_everything( $reason = 'all' ) {
     $done = true;
 
     _ncp_send_purge_request( ncp_purge_url( '/*' ), $reason, 'all' );
+
+    /** Fires after the whole cache has been purged. */
+    do_action( 'ncp_purged_all' );
 }
 
 
@@ -517,7 +585,7 @@ function ncp_purge_for_comment( $comment ) {
     }
 
     foreach ( ncp_paths_for_post( $post ) as $path ) {
-        _ncp_send_purge_request( ncp_purge_url( $path ), 'comment', $comment->comment_ID );
+        ncp_purge_path( $path, 'comment', $comment->comment_ID );
     }
 }
 
