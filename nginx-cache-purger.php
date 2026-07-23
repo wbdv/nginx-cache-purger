@@ -502,6 +502,15 @@ function ncp_purge_for_comment( $comment ) {
         return;
     }
 
+    // A front-end comment fires both wp_insert_comment and (later, on approval)
+    // transition_comment_status in the same request. Purge each comment at most
+    // once per request.
+    static $done = array();
+    if ( isset( $done[ $comment->comment_ID ] ) ) {
+        return;
+    }
+    $done[ $comment->comment_ID ] = true;
+
     $post = get_post( $comment->comment_post_ID );
     if ( ! $post || ! is_post_type_viewable( $post->post_type ) ) {
         return;
@@ -513,18 +522,20 @@ function ncp_purge_for_comment( $comment ) {
 }
 
 /**
- * New comment posted. Only purge if it is visible immediately (auto-approved);
- * a comment held for moderation is not shown yet, so there is nothing stale.
+ * New comment inserted. Hooked to wp_insert_comment rather than comment_post so
+ * it fires for every path — front-end, REST, WP-CLI and programmatic inserts —
+ * not just front-end submissions. Only purge if the comment is visible
+ * immediately (approved); one held for moderation shows nothing stale yet.
  *
  * @param int        $comment_id
- * @param int|string $approved   1 = approved, 0 = held, 'spam' = spam.
+ * @param WP_Comment $comment
  */
-function ncp_purge_on_new_comment( $comment_id, $approved ) {
-    if ( 1 === (int) $approved ) {
-        ncp_purge_for_comment( get_comment( $comment_id ) );
+function ncp_purge_on_new_comment( $comment_id, $comment ) {
+    if ( 1 === (int) $comment->comment_approved ) {
+        ncp_purge_for_comment( $comment );
     }
 }
-add_action( 'comment_post', 'ncp_purge_on_new_comment', 10, 2 );
+add_action( 'wp_insert_comment', 'ncp_purge_on_new_comment', 10, 2 );
 
 /**
  * Existing comment edited — its text on the post changed.
