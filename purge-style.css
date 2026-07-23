@@ -1,5 +1,13 @@
 /* Nginx Cache Purger — admin bar button + notices */
 
+/* Slightly smaller admin-bar icon than the core dashicon default (~16px).
+   Covers both the resting icon (dashicons-image-rotate) and the spinner
+   (dashicons-update), since both render through .ab-icon:before. */
+#wpadminbar #wp-admin-bar-ncp-purge-nginx-cache .ab-icon:before {
+    font-size: 14px;
+    line-height: 1;
+}
+
 /* Button state while a purge is in flight. */
 #wpadminbar .ncp-purging {
     pointer-events: none;
