@@ -3,7 +3,7 @@
  * Plugin Name: Nginx Cache Purger
  * Plugin URI:  https://github.com/wbdv/nginx-cache-purger
  * Description: Manages Nginx FastCGI cache for WordPress with global and automatic purging for posts, pages, and WooCommerce products/categories.
- * Version:     1.0.1
+ * Version:     1.0.2
  * Author:      wbdv
  * Author URI:  https://www.webdev.ro
  * License:     GPL-2.0+
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-define( 'NCP_VERSION', '1.0.1' );
+define( 'NCP_VERSION', '1.0.2' );
 
 /**
  * Add the "Purge Nginx Cache" button to the WordPress admin bar.
@@ -465,3 +465,123 @@ function ncp_purge_on_delete_term( $term_id, $tt_id, $taxonomy, $deleted_term ) 
     _ncp_send_purge_request( ncp_purge_url( '/' ), $taxonomy, $term_id );
 }
 add_action( 'delete_term', 'ncp_purge_on_delete_term', 10, 4 );
+
+
+/**
+ * Purge the whole cache in a single wildcard request.
+ *
+ * Used for changes that affect every rendered page — theme, menus, widgets,
+ * Customizer — where purging individual URLs would mean touching the entire
+ * site anyway. The static guard collapses several triggers firing in one
+ * request (e.g. a Customizer save that changes menus *and* widgets) into one
+ * purge instead of several.
+ *
+ * @param string $reason Short label for the debug log.
+ */
+function ncp_purge_everything( $reason = 'all' ) {
+    static $done = false;
+    if ( $done ) {
+        return;
+    }
+    $done = true;
+
+    _ncp_send_purge_request( ncp_purge_url( '/*' ), $reason, 'all' );
+}
+
+
+/**
+ * Purge the post a comment belongs to.
+ *
+ * A visible comment changes the rendered post (and its comment count on the
+ * home page and archives), so reuse the same path set as a post edit.
+ *
+ * @param WP_Comment|null $comment
+ */
+function ncp_purge_for_comment( $comment ) {
+    if ( ! $comment ) {
+        return;
+    }
+
+    $post = get_post( $comment->comment_post_ID );
+    if ( ! $post || ! is_post_type_viewable( $post->post_type ) ) {
+        return;
+    }
+
+    foreach ( ncp_paths_for_post( $post ) as $path ) {
+        _ncp_send_purge_request( ncp_purge_url( $path ), 'comment', $comment->comment_ID );
+    }
+}
+
+/**
+ * New comment posted. Only purge if it is visible immediately (auto-approved);
+ * a comment held for moderation is not shown yet, so there is nothing stale.
+ *
+ * @param int        $comment_id
+ * @param int|string $approved   1 = approved, 0 = held, 'spam' = spam.
+ */
+function ncp_purge_on_new_comment( $comment_id, $approved ) {
+    if ( 1 === (int) $approved ) {
+        ncp_purge_for_comment( get_comment( $comment_id ) );
+    }
+}
+add_action( 'comment_post', 'ncp_purge_on_new_comment', 10, 2 );
+
+/**
+ * Existing comment edited — its text on the post changed.
+ *
+ * @param int $comment_id
+ */
+function ncp_purge_on_edit_comment( $comment_id ) {
+    ncp_purge_for_comment( get_comment( $comment_id ) );
+}
+add_action( 'edit_comment', 'ncp_purge_on_edit_comment' );
+
+/**
+ * Comment approved, unapproved, spammed or trashed — visibility on the post
+ * changed. Skip 'new' transitions: those are brand-new comments already handled
+ * by comment_post above, so acting here too would purge twice.
+ *
+ * @param string     $new_status
+ * @param string     $old_status
+ * @param WP_Comment $comment
+ */
+function ncp_purge_on_comment_status( $new_status, $old_status, $comment ) {
+    if ( 'new' === $old_status ) {
+        return;
+    }
+    if ( 'approved' === $new_status || 'approved' === $old_status ) {
+        ncp_purge_for_comment( $comment );
+    }
+}
+add_action( 'transition_comment_status', 'ncp_purge_on_comment_status', 10, 3 );
+
+
+/*
+ * Site-wide changes → full purge.
+ *
+ * A theme switch restyles every page; menus and widgets appear in headers,
+ * footers and sidebars across the whole site; a Customizer save can change any
+ * of these at once. Purging the entire cache is both correct and simpler than
+ * trying to enumerate affected URLs.
+ */
+add_action( 'switch_theme', function () {
+    ncp_purge_everything( 'switch_theme' );
+} );
+
+add_action( 'customize_save_after', function () {
+    ncp_purge_everything( 'customizer' );
+} );
+
+add_action( 'wp_update_nav_menu', function () {
+    ncp_purge_everything( 'nav_menu' );
+} );
+
+// Widgets are stored in the 'sidebars_widgets' option (placement) and per-widget
+// 'widget_*' options (content, including 'widget_block' for the block editor).
+// updated_option fires for each; the guard in ncp_purge_everything() keeps a
+// multi-option save to a single purge.
+add_action( 'updated_option', function ( $option ) {
+    if ( 'sidebars_widgets' === $option || 0 === strpos( (string) $option, 'widget_' ) ) {
+        ncp_purge_everything( 'widgets' );
+    }
+} );

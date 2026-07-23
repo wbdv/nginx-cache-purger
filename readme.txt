@@ -4,7 +4,7 @@ Tags: nginx, cache, purge, fastcgi, woocommerce
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -167,6 +167,14 @@ session cookies — the configuration in README.md does.
 
 == Changelog ==
 
+= 1.0.2 =
+* New purge triggers: a new or edited comment (and approve/unapprove/spam/trash)
+  now purges the post it belongs to.
+* Theme switch, nav-menu changes, widget changes and Customizer saves now purge
+  the whole cache, since they affect every page.
+* Multiple site-wide triggers firing in one request collapse into a single
+  wildcard purge.
+
 = 1.0.1 =
 * Security: the purge URL is built from the site address instead of the
   client-supplied Host header, which could be spoofed into making the site issue
@@ -193,6 +201,9 @@ session cookies — the configuration in README.md does.
   WooCommerce product and product-category purging.
 
 == Upgrade Notice ==
+
+= 1.0.2 =
+Adds comment, theme, menu, widget and Customizer purge triggers.
 
 = 1.0.1 =
 Fixes a spoofable Host header used to build the outbound purge URL, enables SSL

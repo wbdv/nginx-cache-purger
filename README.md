@@ -282,6 +282,9 @@ nobody has requested yet, and the plugin treats it as success.
 | Post permanently deleted | Same set as above |
 | Term created or edited (any public taxonomy) | Its archive and the home page |
 | Term deleted | Its archive and the home page |
+| Comment posted (visible), edited, approved, unapproved, spammed or trashed | The commented post's permalink, the home page and its archives |
+| Theme switched | Everything |
+| Nav menu, widgets or Customizer saved | Everything |
 
 Post types that are not publicly viewable — menu items, revisions, WooCommerce
 orders, most custom internal types — are skipped, since they were never cached.
@@ -364,6 +367,15 @@ the original authors for the starting point.
 ---
 
 ## Changelog
+
+### 1.0.2
+
+* New purge triggers: a new or edited comment — and approve / unapprove / spam /
+  trash of an existing one — now purges the post it belongs to.
+* Theme switch, nav-menu edits, widget changes and Customizer saves purge the
+  whole cache, since they restyle or re-populate every page.
+* Several site-wide triggers firing in a single request collapse into one
+  wildcard purge instead of many.
 
 ### 1.0.1
 
