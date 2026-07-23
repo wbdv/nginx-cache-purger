@@ -1,0 +1,13 @@
+# Editor / OS noise
+*.bak
+*.bak-*
+*.orig
+*.rej
+*~
+.DS_Store
+Thumbs.db
+*.swp
+
+# Build output
+/dist/
+*.zip

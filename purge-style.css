@@ -1,0 +1,122 @@
+/* Nginx Cache Purger — admin bar button + notices */
+
+/* Button state while a purge is in flight. */
+#wpadminbar .ncp-purging {
+    pointer-events: none;
+    opacity: .8;
+}
+
+#wpadminbar .ncp-purging .ab-icon.dashicons-update:before {
+    animation: ncp-spin 1s infinite linear;
+    display: inline-block;
+}
+
+@keyframes ncp-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #wpadminbar .ncp-purging .ab-icon.dashicons-update:before {
+        animation: none;
+    }
+}
+
+/*
+ * Admin notice spacing.
+ *
+ * Core styles a notice differently depending on where it sits in the DOM
+ * (.wrap .notice vs a bare .notice), and screens vary in what they offer as an
+ * insertion point. Pin the spacing so the notice looks the same everywhere.
+ * The #wpbody-content prefix outranks core's .wrap .notice rule without
+ * needing !important.
+ */
+#wpbody-content .ncp-notice {
+    margin: 16px 0;
+}
+
+/* Screens with no .wrap: supply the horizontal indent core would have given. */
+#wpbody-content .ncp-notice.ncp-notice-standalone {
+    margin: 16px 20px;
+}
+
+@media screen and (max-width: 782px) {
+    #wpbody-content .ncp-notice.ncp-notice-standalone {
+        margin: 16px 10px;
+    }
+}
+
+/*
+ * Front-end toast. Inside wp-admin the notice is injected into the normal
+ * notice area and inherits core's .notice styling, so nothing else is needed.
+ */
+.ncp-toast {
+    position: fixed;
+    top: 42px;
+    right: 20px;
+    z-index: 99999;
+    max-width: 380px;
+    padding: 12px 38px 12px 14px;
+    border-left: 4px solid #72aee6;
+    background: #fff;
+    color: #1d2327;
+    font: 400 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+    border-radius: 2px;
+    animation: ncp-toast-in .18s ease-out;
+}
+
+.ncp-toast.notice-success { border-left-color: #00a32a; }
+.ncp-toast.notice-error   { border-left-color: #d63638; }
+
+.ncp-toast p {
+    margin: 0;
+    padding: 0;
+}
+
+@keyframes ncp-toast-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ncp-toast { animation: none; }
+}
+
+/* Dismiss button for the toast — mirrors core's .notice-dismiss. */
+.ncp-toast .notice-dismiss {
+    position: absolute;
+    top: 0;
+    right: 1px;
+    border: none;
+    margin: 0;
+    padding: 9px;
+    background: none;
+    color: #787c82;
+    cursor: pointer;
+}
+
+.ncp-toast .notice-dismiss:before {
+    content: "\f153";
+    display: block;
+    height: 20px;
+    width: 20px;
+    font: normal 16px/20px dashicons;
+    speak: never;
+    -webkit-font-smoothing: antialiased;
+}
+
+.ncp-toast .notice-dismiss:hover:before,
+.ncp-toast .notice-dismiss:focus:before {
+    color: #d63638;
+}
+
+/* The admin bar sits above the toast on small screens; nudge it down. */
+@media screen and (max-width: 782px) {
+    .ncp-toast {
+        top: 56px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+}
