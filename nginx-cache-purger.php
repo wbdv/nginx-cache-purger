@@ -9,7 +9,6 @@
  * License:     GPL-2.0+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain: nginx-cache-purger
- * Domain Path: /languages
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -93,7 +92,13 @@ add_action( 'wp_enqueue_scripts', 'ncp_enqueue_scripts' ); // Also for frontend 
  */
 function _ncp_log( $message ) {
     if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG === true ) {
-        error_log( 'NCP: ' . $message );
+        /*
+         * Diagnostic logging, and the only way to see why a purge failed: the
+         * requests are fired from hooks with no UI to report back to. It is
+         * unreachable unless the site owner has explicitly turned WP_DEBUG_LOG
+         * on, so it never writes anything on a production install.
+         */
+        error_log( 'NCP: ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
     }
 }
 
