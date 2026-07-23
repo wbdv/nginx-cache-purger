@@ -4,8 +4,8 @@
  * Plugin URI:  https://github.com/wbdv/nginx-cache-purger
  * Description: Manages Nginx FastCGI cache for WordPress with global and automatic purging for posts, pages, and WooCommerce products/categories.
  * Version:     1.0.1
- * Author:      
- * Author URI:  https:///
+ * Author:      wbdv
+ * Author URI:  https://github.com/wbdv/nginx-cache-purger
  * License:     GPL-2.0+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain: nginx-cache-purger
