@@ -111,18 +111,17 @@ map $http_cookie $wp_nc_cookie {
 
 # Never cache these paths.
 map $request_uri $wp_nc_uri {
-    default                        0;
-    ~*^/wp-admin                   1;
-    ~*^/wp-login\.php              1;
-    ~*^/wp-cron\.php               1;
-    ~*^/xmlrpc\.php                1;
-    ~*^/wp-json                    1;
-    ~*^/feed                       1;
-    ~*^/sitemap.*\.xml             1;
-    ~*^/purge                      1;
-    ~*^/(cart|checkout|my-account) 1;
-    ~*^/wc-api                     1;
-    ~*^/store-api                  1;
+    default                          0;
+    ~*^/wp-admin                     1;
+    ~*^/wp-.*\.php                    1;   # wp-login, wp-signup, wp-trackback, wp-cron, wp-comments-post, etc.
+    ~*^/xmlrpc\.php                   1;
+    ~*^/wp-json                       1;
+    ~*^/feed                          1;
+    ~*sitemap.*\.xml                  1;   # sitemap.xml and Yoast-style post-sitemap.xml / page-sitemap2.xml
+    ~*^/purge                         1;
+    ~*^/(cart|checkout|my-account)    1;
+    ~*^/wc-api                        1;
+    ~*^/store-api                     1;
 }
 
 map $request_method $wp_nc_method {
