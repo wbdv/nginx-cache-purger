@@ -35,13 +35,17 @@ jQuery(function ($) {
             nonce: ncp_settings.cron_nonce
         }).done(function (r) {
             if (r && r.success) {
+                // Update the UI directly rather than waiting for a refresh: the
+                // running PHP process booted before the define existed, so the
+                // button's server-side condition would still show it for a moment.
                 $out.html('<span style="color:#00a32a;">' + r.data.message + '</span>');
+                $btn.remove();
             } else {
                 $out.html('<span style="color:#d63638;">' + ((r && r.data && r.data.message) || 'Error') + '</span>');
+                $btn.prop('disabled', false);
             }
         }).fail(function () {
             $out.html('<span style="color:#d63638;">Request failed.</span>');
-        }).always(function () {
             $btn.prop('disabled', false);
         });
     });

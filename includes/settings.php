@@ -181,6 +181,14 @@ function ncp_write_disable_wp_cron() {
     if ( ! $wp_filesystem->put_contents( $file, $new, FS_CHMOD_FILE ) ) {
         return array( 'ok' => false, 'message' => __( 'Write failed. Add the line manually.', 'nginx-cache-purger' ) );
     }
+
+    // Drop the cached bytecode of wp-config.php so the new define takes effect on
+    // the very next request. Without this, OPcache keeps running the old file for
+    // up to opcache.revalidate_freq seconds and the page looks unchanged.
+    if ( function_exists( 'opcache_invalidate' ) ) {
+        opcache_invalidate( $file, true );
+    }
+
     return array( 'ok' => true, 'message' => __( 'Added DISABLE_WP_CRON to wp-config.php. Now add the system cron line below.', 'nginx-cache-purger' ) );
 }
 
