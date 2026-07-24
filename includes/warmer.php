@@ -88,6 +88,19 @@ function ncp_warm_enabled() {
 }
 
 /**
+ * Number of URLs currently waiting in the warm queue.
+ *
+ * @return int
+ */
+function ncp_warm_queue_count() {
+    global $wpdb;
+    $table = ncp_warm_table();
+    // Custom queue table; name from $wpdb->prefix, not object-cacheable.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+    return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+}
+
+/**
  * Would this path be cached at all? Skip the obvious non-cacheable ones so we
  * do not queue a fetch that nginx will only BYPASS. This mirrors the common
  * bypass rules; it does not need to be exhaustive, just avoid clear waste.

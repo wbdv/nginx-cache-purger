@@ -175,9 +175,6 @@ function ncp_write_disable_wp_cron() {
         return array( 'ok' => false, 'message' => __( 'Unexpected wp-config.php format; add the line manually.', 'nginx-cache-purger' ) );
     }
 
-    // Back up before writing.
-    $wp_filesystem->copy( $file, $file . '.ncp-bak', true );
-
     if ( ! $wp_filesystem->put_contents( $file, $new, FS_CHMOD_FILE ) ) {
         return array( 'ok' => false, 'message' => __( 'Write failed. Add the line manually.', 'nginx-cache-purger' ) );
     }
@@ -307,6 +304,24 @@ function ncp_settings_render() {
                         <p class="description"><?php esc_html_e( 'After a full purge, warm at most this many URLs (home page + most recent posts). The whole sitemap is never warmed at once.', 'nginx-cache-purger' ); ?></p>
                     </td>
                 </tr>
+                <?php if ( $o['warmer_enabled'] ) : ?>
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Queue', 'nginx-cache-purger' ); ?></th>
+                    <td>
+                        <?php
+                        $queued = ncp_warm_queue_count();
+                        echo esc_html(
+                            sprintf(
+                                /* translators: %s: number of URLs */
+                                _n( '%s URL waiting to be warmed.', '%s URLs waiting to be warmed.', $queued, 'nginx-cache-purger' ),
+                                number_format_i18n( $queued )
+                            )
+                        );
+                        ?>
+                        <p class="description"><?php esc_html_e( 'Drained a few URLs at a time on each cron run.', 'nginx-cache-purger' ); ?></p>
+                    </td>
+                </tr>
+                <?php endif; ?>
             </table>
 
             <h2><?php esc_html_e( 'Purge endpoint', 'nginx-cache-purger' ); ?></h2>
