@@ -177,6 +177,7 @@ session cookies — the configuration in README.md does.
   cache self-test built on the X-FastCGI-Cache header.
 * The purge endpoint and SSL-verify can now be set from the Settings page as well
   as the filters; a code filter still wins.
+* New: Settings link on the plugin's row in the Plugins list.
 * All optional — with nothing configured the plugin behaves exactly as before.
 
 = 1.0.2 =

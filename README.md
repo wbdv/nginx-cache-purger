@@ -455,6 +455,7 @@ the original authors for the starting point.
   canary), and a one-click cache self-test using the `X-FastCGI-Cache` header.
 * Endpoint and SSL-verify are now settable from the page as well as the filters;
   a code filter still wins.
+* **Settings** link on the plugin's row in the Plugins list.
 * Everything is optional — with nothing configured the plugin behaves exactly as
   in 1.0.x.
 
