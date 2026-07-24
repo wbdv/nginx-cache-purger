@@ -3,7 +3,7 @@
  * Plugin Name: Nginx Cache Purger
  * Plugin URI:  https://github.com/wbdv/nginx-cache-purger
  * Description: Manages Nginx FastCGI cache for WordPress with global and automatic purging for posts, pages, and WooCommerce products/categories.
- * Version:     1.1.0
+ * Version:     1.1.1
  * Author:      Webdev
  * Author URI:  https://www.webdev.ro
  * License:     GPL-2.0+
@@ -15,9 +15,10 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-define( 'NCP_VERSION', '1.1.0' );
+define( 'NCP_VERSION', '1.1.1' );
 
 require_once __DIR__ . '/includes/options.php';
+require_once __DIR__ . '/includes/compat.php';
 require_once __DIR__ . '/includes/warmer.php';
 if ( is_admin() ) {
     require_once __DIR__ . '/includes/settings.php';

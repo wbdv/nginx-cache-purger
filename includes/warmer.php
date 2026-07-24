@@ -252,9 +252,9 @@ function ncp_warm_fetch( $path ) {
         return '';
     }
 
-    $status = wp_remote_retrieve_header( $response, 'x-fastcgi-cache' );
+    $status = ncp_read_cache_status( $response );
     _ncp_log( 'Warmed ' . $path . ' (' . wp_remote_retrieve_response_code( $response ) . ', cache: ' . ( $status ? $status : 'n/a' ) . ')' );
-    return is_array( $status ) ? reset( $status ) : (string) $status;
+    return $status;
 }
 
 /**

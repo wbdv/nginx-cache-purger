@@ -20,6 +20,7 @@ to a `/purge` location that Nginx handles; everything else is Nginx configuratio
 - [What gets purged, and when](#what-gets-purged-and-when)
 - [Filters](#filters)
 - [Purging behind a proxy or Cloudflare](#purging-behind-a-proxy-or-cloudflare)
+- [Other caching plugins](#other-caching-plugins)
 - [Troubleshooting](#troubleshooting)
 - [Credits](#credits)
 - [Changelog](#changelog)
@@ -321,6 +322,24 @@ add_filter( 'ncp_paths_for_post', function ( $paths, $post ) {
 }, 10, 2 );
 ```
 
+**`ncp_cache_status_headers`** — response headers read for the cache status,
+most specific first. Defaults to `x-fastcgi-cache`, `x-cache-status`,
+`x-proxy-cache`. These are also the headers registered with Site Health:
+
+```php
+add_filter( 'ncp_cache_status_headers', function ( $headers ) {
+    array_unshift( $headers, 'x-my-cache' );
+    return $headers;
+} );
+```
+
+**`ncp_cache_conflicts`** — the list of conflicting caching plugins shown on the
+Settings page. Return an empty array to silence the warning:
+
+```php
+add_filter( 'ncp_cache_conflicts', '__return_empty_array' );
+```
+
 ---
 
 ## Purging behind a proxy or Cloudflare
@@ -396,6 +415,51 @@ terminating nginx), the same fix applies: purge the origin directly over
 
 ---
 
+## Other caching plugins
+
+**Do not run a second full-page cache.** WP Rocket, W3 Total Cache, WP Super
+Cache, LiteSpeed Cache, WP Fastest Cache, Cache Enabler and friends all store
+rendered HTML themselves. Nginx caches whatever PHP hands back, so its copy is a
+copy of *their* copy — two caches, two lifetimes, two purge mechanisms, neither
+aware of the other. When the plugin clears its cache, nginx happily keeps
+serving the old page. Symptoms are intermittent stale content that survives a
+purge and disappears when you clear the *other* plugin's cache.
+
+Pick one layer:
+
+* **Keep nginx** — switch page caching off in the other plugin. Its other
+  features (minification, database cleanup, CDN, lazy-load) are fine to keep
+  running alongside this plugin.
+* **Keep the plugin** — remove the `fastcgi_cache` directives from the vhost.
+
+The Settings page detects the common ones and warns you. It also warns about
+other nginx purgers (Nginx Helper, Nginx Cache, Proxy Cache Purge): not harmful,
+just redundant.
+
+Object caches — Redis Object Cache, Memcached, Docket Cache — are a different
+layer entirely and work fine with this plugin. So do CDN and image plugins.
+
+### Site Health
+
+WordPress's **Tools → Site Health** page-cache test makes three anonymous
+requests to the home page and looks for a known caching header. It recognises
+`x-cache-status` and `x-proxy-cache` but not `x-fastcgi-cache`, so a correctly
+configured site used to be reported as:
+
+> Page cache is not detected but the server response time is OK
+
+The plugin registers the header with core, so the test passes on its own. If you
+prefer not to rely on that, emit the name core already knows:
+
+```nginx
+add_header X-Cache-Status $upstream_cache_status always;
+```
+
+Either header works — the plugin reads `X-FastCGI-Cache`, `X-Cache-Status` and
+`X-Proxy-Cache`, in that order.
+
+---
+
 ## Troubleshooting
 
 **Nothing is ever cached (always `MISS`).** Check `X-Cache-Skip` /
@@ -442,6 +506,23 @@ the original authors for the starting point.
 ---
 
 ## Changelog
+
+### 1.1.1
+
+* **Conflict warning.** The Settings page now warns when another full-page cache
+  plugin is active (WP Rocket, W3 Total Cache, WP Super Cache, LiteSpeed Cache
+  and a dozen others), or when an unidentified `advanced-cache.php` drop-in is
+  loaded with `WP_CACHE` on. Stacking two page caches produces stale pages that
+  no single purge can fix.
+* A quieter notice for other Nginx purgers (Nginx Helper, Nginx Cache, Proxy
+  Cache Purge) — redundant rather than harmful.
+* **Site Health fix.** Core's page-cache test reported "Page cache is not
+  detected" on correctly configured sites, because its header list does not
+  include `x-fastcgi-cache`. The plugin registers the header via
+  `site_status_page_cache_supported_cache_headers`, which also clears the
+  companion "a page cache plugin was not detected" line.
+* The self-test and warmer now read `X-Cache-Status` and `X-Proxy-Cache` as well
+  as `X-FastCGI-Cache`; the list is filterable via `ncp_cache_status_headers`.
 
 ### 1.1.0
 

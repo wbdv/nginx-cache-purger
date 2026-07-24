@@ -239,13 +239,12 @@ function ncp_ajax_cache_test() {
         if ( is_wp_error( $r ) ) {
             wp_send_json_error( array( 'message' => sprintf( /* translators: %s: error */ __( 'Request failed: %s', 'nginx-cache-purger' ), $r->get_error_message() ) ) );
         }
-        $h = wp_remote_retrieve_header( $r, 'x-fastcgi-cache' );
-        $statuses[] = is_array( $h ) ? reset( $h ) : (string) $h;
+        $statuses[] = ncp_read_cache_status( $r );
     }
 
     if ( '' === $statuses[0] && '' === $statuses[1] ) {
         wp_send_json_error( array(
-            'message' => __( 'No X-FastCGI-Cache header seen. Either the cache is not configured for this site, or the debug header is not enabled in the vhost.', 'nginx-cache-purger' ),
+            'message' => __( 'No cache status header seen (X-FastCGI-Cache, X-Cache-Status or X-Proxy-Cache). Either the cache is not configured for this site, or the header is not enabled in the vhost.', 'nginx-cache-purger' ),
         ) );
     }
 
@@ -280,6 +279,7 @@ function ncp_settings_render() {
     ?>
     <div class="wrap">
         <h1><?php esc_html_e( 'Nginx Cache Purger', 'nginx-cache-purger' ); ?></h1>
+        <?php ncp_render_conflict_notice(); ?>
         <p><?php esc_html_e( 'Everything here is optional — the plugin purges correctly with no settings changed.', 'nginx-cache-purger' ); ?></p>
 
         <form method="post" action="options.php">
@@ -388,7 +388,7 @@ function ncp_settings_render() {
         <hr />
 
         <h2><?php esc_html_e( 'Cache self-test', 'nginx-cache-purger' ); ?></h2>
-        <p><?php esc_html_e( 'Fetches the home page twice and reads the X-FastCGI-Cache header to confirm caching is active.', 'nginx-cache-purger' ); ?></p>
+        <p><?php esc_html_e( 'Fetches the home page twice and reads the cache status header to confirm caching is active.', 'nginx-cache-purger' ); ?></p>
         <p>
             <button type="button" class="button button-secondary" id="ncp-cache-test"><?php esc_html_e( 'Run cache test', 'nginx-cache-purger' ); ?></button>
             <span id="ncp-cache-test-result" style="margin-left:8px;"></span>

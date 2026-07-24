@@ -4,7 +4,7 @@ Tags: nginx, cache, purge, fastcgi, woocommerce
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -16,9 +16,11 @@ Nginx Cache Purger keeps an Nginx FastCGI page cache in step with WordPress. It
 adds a "Purge Nginx Cache" button to the admin bar for clearing the whole site,
 and purges the affected pages by itself whenever content changes.
 
-There is no settings page, no database option and no cron job. The plugin sends
-an HTTP request to a `/purge` location that Nginx handles; the caching policy
-itself lives entirely in your Nginx configuration.
+It works with nothing configured: the plugin sends an HTTP request to a `/purge`
+location that Nginx handles, and the caching policy itself lives entirely in
+your Nginx configuration. A Settings page exists for the optional extras — a
+background cache warmer, a purge-endpoint override for sites behind a proxy, and
+a cache self-test — but you can ignore all of it.
 
 **What it purges**
 
@@ -165,7 +167,40 @@ Yes. Product and product-category purging switch on automatically. Make sure
 your Nginx bypass rules exclude cart, checkout, my-account and the WooCommerce
 session cookies — the configuration in README.md does.
 
+= Can I use it with WP Rocket, W3 Total Cache or LiteSpeed Cache? =
+
+Not for page caching, no. Those plugins store rendered HTML themselves, and
+Nginx then caches *their* output — two caches with two lifetimes and two purge
+mechanisms that know nothing about each other, so pages go stale in ways no
+single purge fixes. Turn page caching off in the other plugin (its minification,
+database and CDN features are fine to keep), or drop the fastcgi_cache
+directives from your vhost and let that plugin do the caching. The Settings page
+warns you when it detects one.
+
+Object caches such as Redis Object Cache work fine — they are a different layer.
+
+= Site Health says "Page cache is not detected". =
+
+Core's test looks for a fixed list of caching headers and does not know
+`x-fastcgi-cache`. The plugin registers the header with core, so the test should
+pass once this plugin is active. If it still does not, either the cache status
+header is missing from your vhost, or the home page is being bypassed — run the
+cache self-test on the Settings page to see which. You can also emit the name
+core already knows: `add_header X-Cache-Status $upstream_cache_status always;`.
+
 == Changelog ==
+
+= 1.1.1 =
+* New: the Settings page warns when another full-page cache plugin is active
+  (WP Rocket, W3 Total Cache, WP Super Cache, LiteSpeed Cache and others), or
+  when an unidentified advanced-cache.php drop-in is loaded. Two page caches
+  stacked on each other cause stale pages that a purge cannot fix.
+* New: also warns, less loudly, about other Nginx purgers.
+* Fixed: WordPress Site Health reported "Page cache is not detected" on properly
+  configured sites, because core does not know the X-FastCGI-Cache header. The
+  plugin now registers it.
+* The cache self-test and warmer accept X-Cache-Status and X-Proxy-Cache as well
+  as X-FastCGI-Cache.
 
 = 1.1.0 =
 * New: optional background cache warmer. When enabled, purged URLs are re-fetched
@@ -214,6 +249,10 @@ session cookies — the configuration in README.md does.
   WooCommerce product and product-category purging.
 
 == Upgrade Notice ==
+
+= 1.1.1 =
+Fixes the Site Health "Page cache is not detected" warning and adds a conflict
+warning when another page cache plugin is active.
 
 = 1.1.0 =
 Adds an optional background cache warmer and a Settings page. Existing behaviour
