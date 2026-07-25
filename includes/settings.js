@@ -2,6 +2,19 @@
 jQuery(function ($) {
     'use strict';
 
+    /**
+     * Show a coloured status message. Uses .text() so anything the server
+     * relayed (e.g. a cache-status response header echoed back in the verdict)
+     * is inserted as text, never parsed as HTML.
+     *
+     * @param {jQuery} $out  Target element.
+     * @param {string} color CSS colour.
+     * @param {string} text  Message.
+     */
+    function ngxcpStatus($out, color, text) {
+        $out.empty().append($('<span/>').css('color', color).text(text));
+    }
+
     $('#ngxcp-cache-test').on('click', function () {
         var $btn = $(this),
             $out = $('#ngxcp-cache-test-result');
@@ -13,12 +26,12 @@ jQuery(function ($) {
             nonce: ngxcp_settings.test_nonce
         }).done(function (r) {
             if (r && r.success) {
-                $out.html('<span style="color:#00a32a;">' + r.data.message + '</span>');
+                ngxcpStatus($out, '#00a32a', r.data.message);
             } else {
-                $out.html('<span style="color:#d63638;">' + ((r && r.data && r.data.message) || 'Error') + '</span>');
+                ngxcpStatus($out, '#d63638', (r && r.data && r.data.message) || 'Error');
             }
         }).fail(function () {
-            $out.html('<span style="color:#d63638;">Request failed.</span>');
+            ngxcpStatus($out, '#d63638', 'Request failed.');
         }).always(function () {
             $btn.prop('disabled', false);
         });
@@ -38,14 +51,14 @@ jQuery(function ($) {
                 // Update the UI directly rather than waiting for a refresh: the
                 // running PHP process booted before the define existed, so the
                 // button's server-side condition would still show it for a moment.
-                $out.html('<span style="color:#00a32a;">' + r.data.message + '</span>');
+                ngxcpStatus($out, '#00a32a', r.data.message);
                 $btn.remove();
             } else {
-                $out.html('<span style="color:#d63638;">' + ((r && r.data && r.data.message) || 'Error') + '</span>');
+                ngxcpStatus($out, '#d63638', (r && r.data && r.data.message) || 'Error');
                 $btn.prop('disabled', false);
             }
         }).fail(function () {
-            $out.html('<span style="color:#d63638;">Request failed.</span>');
+            ngxcpStatus($out, '#d63638', 'Request failed.');
             $btn.prop('disabled', false);
         });
     });
