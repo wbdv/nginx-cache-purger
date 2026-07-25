@@ -1,12 +1,16 @@
-# Nginx Cache Purger
+# Reqad Cache Purger for Nginx
 
 [![License](https://img.shields.io/badge/license-GPL--2.0%2B-blue.svg?style=flat-square)](https://www.gnu.org/licenses/gpl-2.0.txt)
 
-Purges the Nginx FastCGI cache when WordPress content changes — automatically on
+Purges the Nginx FastCGI cache when WordPress content changes - automatically on
 publish, update, trash and delete, or site-wide from a button in the admin bar.
 
-No settings page, no database options, no cron. The plugin sends an HTTP request
-to a `/purge` location that Nginx handles; everything else is Nginx configuration.
+It works with nothing configured: the plugin sends an HTTP request to a `/purge`
+location that Nginx handles, and the caching policy lives entirely in your Nginx
+configuration. An optional Settings page adds a background cache warmer, a
+purge-endpoint override and a cache self-test - all of which you can ignore.
+
+![The Settings page](assets/screenshot-1.png)
 
 ---
 
@@ -33,18 +37,18 @@ to a `/purge` location that Nginx handles; everything else is Nginx configuratio
 |---|---|
 | WordPress | 6.0 or newer |
 | PHP | 7.4 or newer |
-| Nginx | built with **ngx_cache_purge** — see below |
+| Nginx | built with **ngx_cache_purge** - see below |
 | WooCommerce | optional; product and product-category purging activates automatically |
 
 ### The Nginx module matters
 
 This plugin needs [**nginx-modules/ngx_cache_purge**](https://github.com/nginx-modules/ngx_cache_purge)
-— the actively maintained continuation of Piotr Sikora's original module, which
+- the actively maintained continuation of Piotr Sikora's original module, which
 passed through torden's fork around 2017 and has been developed there ever since.
 
 **The abandoned FRiCKLE repository will not work.** The admin-bar button clears
 the site with a single wildcard request (`/purge/*`), and `purge_all` /
-wildcard purging landed after FRiCKLE development stopped around 2015 — that
+wildcard purging landed after FRiCKLE development stopped around 2015 - that
 repository can only purge one exact key per request, and no longer compiles
 against current Nginx.
 
@@ -59,7 +63,7 @@ nginx -V 2>&1 | tr ' ' '\n' | grep cache_purge
 
 If that prints nothing, the module is missing. If it prints a path, confirm it is
 the fork by testing a wildcard purge once configured (see
-[Verifying it works](#verifying-it-works)) — the fork answers `200`, FRiCKLE
+[Verifying it works](#verifying-it-works)) - the fork answers `200`, FRiCKLE
 answers `404`/`412`.
 
 ---
@@ -87,7 +91,7 @@ with `load_module`.
 ## Nginx configuration
 
 Two pieces are needed: a FastCGI cache, and a `/purge` location. This is a
-complete working example — replace `example.com` and the zone name `wpcache`.
+complete working example - replace `example.com` and the zone name `wpcache`.
 
 ### 1. In the `http` context
 
@@ -134,7 +138,7 @@ map $request_method $wp_nc_method {
 
 # Anything with a query string bypasses the cache. This covers ?wc-ajax=,
 # ?add-to-cart=, ?preview=, ?s= without listing them, and keeps query strings
-# out of the cache key — which is what wildcard purging needs.
+# out of the cache key - which is what wildcard purging needs.
 map $query_string $wp_nc_query {
     default 1;
     ""      0;
@@ -150,7 +154,7 @@ map "$wp_nc_cookie$wp_nc_uri$wp_nc_method$wp_nc_query" $wp_skip_cache {
 
 ```nginx
 # Purge endpoint. The plugin requests it over the site's own public hostname,
-# so the request arrives from this server's public IP — not from 127.0.0.1.
+# so the request arrives from this server's public IP - not from 127.0.0.1.
 location ~ ^/purge(/.*) {
     allow 127.0.0.1;
     allow ::1;
@@ -211,7 +215,7 @@ add_header X-FastCGI-Cache $upstream_cache_status always;
 **Use `$request_uri`, not `$uri`, in the cache key.** WordPress vhosts route
 everything through `try_files … /index.php`, which rewrites `$uri` to
 `/index.php`. A key built on `$uri` collapses the entire site onto one cache
-entry — every page serves whatever was cached first.
+entry - every page serves whatever was cached first.
 
 **Leave `$request_method` out of the key.** With it, `GET` and `HEAD` are stored
 as separate entries, and since the plugin always purges with `GET`, the `HEAD`
@@ -230,7 +234,7 @@ nginx -t && systemctl reload nginx
 
 ## Installing the plugin
 
-**From a release zip** — *Plugins → Add New → Upload Plugin*, choose the zip,
+**From a release zip** - *Plugins → Add New → Upload Plugin*, choose the zip,
 *Install Now*, then *Activate*.
 
 **From git**
@@ -257,7 +261,7 @@ curl -sI https://example.com/ | grep -i x-fastcgi-cache
 curl -s https://example.com/purge/
 # {"Key": "httpsexample.com/", "Status": "purged"}
 
-# 3. Wildcard purge — fork-only. 200 means the fork; 404/412 means FRiCKLE.
+# 3. Wildcard purge - fork-only. 200 means the fork; 404/412 means FRiCKLE.
 curl -s "https://example.com/purge/*"
 
 # 4. Bypasses. All of these must report BYPASS.
@@ -269,7 +273,7 @@ curl -sI https://example.com/cart/                         | grep -i x-fastcgi-c
 Then edit a post and confirm its URL, the home page and its category archive all
 go back to `MISS`.
 
-A `412` from a purge means *"that key was not in the cache"* — normal for a page
+A `412` from a purge means *"that key was not in the cache"* - normal for a page
 nobody has requested yet, and the plugin treats it as success.
 
 ---
@@ -288,56 +292,56 @@ nobody has requested yet, and the plugin treats it as success.
 | Theme switched | Everything |
 | Nav menu, widgets or Customizer saved | Everything |
 
-Post types that are not publicly viewable — menu items, revisions, WooCommerce
-orders, most custom internal types — are skipped, since they were never cached.
+Post types that are not publicly viewable - menu items, revisions, WooCommerce
+orders, most custom internal types - are skipped, since they were never cached.
 
 ---
 
 ## Filters
 
-**`ncp_purge_endpoint`** — scheme and host the purge is sent to. Defaults to
+**`ngxcp_purge_endpoint`** - scheme and host the purge is sent to. Defaults to
 `home_url()`. Use this when the site sits behind a CDN or proxy and the purge
 must reach the origin directly:
 
 ```php
-add_filter( 'ncp_purge_endpoint', function () {
+add_filter( 'ngxcp_purge_endpoint', function () {
     return 'https://origin.example.com';
 } );
 ```
 
-**`ncp_purge_sslverify`** — certificate verification on the purge request,
+**`ngxcp_purge_sslverify`** - certificate verification on the purge request,
 default `true`. Only disable it if the endpoint is reached over a hostname or IP
 the certificate does not cover:
 
 ```php
-add_filter( 'ncp_purge_sslverify', '__return_false' );
+add_filter( 'ngxcp_purge_sslverify', '__return_false' );
 ```
 
-**`ncp_paths_for_post`** — the list of paths purged when a post changes:
+**`ngxcp_paths_for_post`** - the list of paths purged when a post changes:
 
 ```php
-add_filter( 'ncp_paths_for_post', function ( $paths, $post ) {
+add_filter( 'ngxcp_paths_for_post', function ( $paths, $post ) {
     $paths[] = '/blog/';
     return $paths;
 }, 10, 2 );
 ```
 
-**`ncp_cache_status_headers`** — response headers read for the cache status,
+**`ngxcp_cache_status_headers`** - response headers read for the cache status,
 most specific first. Defaults to `x-fastcgi-cache`, `x-cache-status`,
 `x-proxy-cache`. These are also the headers registered with Site Health:
 
 ```php
-add_filter( 'ncp_cache_status_headers', function ( $headers ) {
+add_filter( 'ngxcp_cache_status_headers', function ( $headers ) {
     array_unshift( $headers, 'x-my-cache' );
     return $headers;
 } );
 ```
 
-**`ncp_cache_conflicts`** — the list of conflicting caching plugins shown on the
+**`ngxcp_cache_conflicts`** - the list of conflicting caching plugins shown on the
 Settings page. Return an empty array to silence the warning:
 
 ```php
-add_filter( 'ncp_cache_conflicts', '__return_empty_array' );
+add_filter( 'ngxcp_cache_conflicts', '__return_empty_array' );
 ```
 
 ---
@@ -345,8 +349,8 @@ add_filter( 'ncp_cache_conflicts', '__return_empty_array' );
 ## Purging behind a proxy or Cloudflare
 
 By default the plugin sends the purge to your site's own address (`home_url()`).
-When nginx serves the site directly — Cloudflare **grey-clouded** ("DNS only"),
-or no CDN at all — that request loops straight back to nginx from the server's
+When nginx serves the site directly - Cloudflare **grey-clouded** ("DNS only"),
+or no CDN at all - that request loops straight back to nginx from the server's
 own IP and everything works. Nothing to configure.
 
 It breaks when the site is **orange-clouded** (Cloudflare "Proxied") or sits
@@ -355,7 +359,7 @@ to a record is the toggle: **orange = Proxied** (traffic runs through Cloudflare
 **grey = DNS only** (traffic goes straight to your origin). Only the orange case
 is a problem.
 
-With the site orange-clouded, `home_url()` no longer resolves to your server —
+With the site orange-clouded, `home_url()` no longer resolves to your server -
 it resolves to Cloudflare. So the purge request leaves your box, crosses the
 internet to Cloudflare, and only then comes back to your origin. Along the way:
 
@@ -375,18 +379,18 @@ your `allow` list already trusts:
 
 ```php
 // Send purges to nginx directly, bypassing the proxy in front of the site.
-add_filter( 'ncp_purge_endpoint', function () {
+add_filter( 'ngxcp_purge_endpoint', function () {
     return 'http://127.0.0.1';
 } );
-add_filter( 'ncp_purge_sslverify', '__return_false' );
+add_filter( 'ngxcp_purge_sslverify', '__return_false' );
 ```
 
-Two details make this reliable — miss either and the purge quietly does nothing:
+Two details make this reliable - miss either and the purge quietly does nothing:
 
 1. **Use `http://`, not `https://`.** Over loopback plain HTTP is safe (it never
    leaves the machine), and it avoids a certificate-name mismatch: nginx would
    present the site's certificate, which is issued for the domain, not for
-   `127.0.0.1`. (`ncp_purge_sslverify` → false covers the case where you must use
+   `127.0.0.1`. (`ngxcp_purge_sslverify` → false covers the case where you must use
    https anyway.)
 
 2. **Hardcode `https` in the purge location's key.** Your cache key is
@@ -407,7 +411,7 @@ Two details make this reliable — miss either and the purge quietly does nothin
    ```
 
    With the endpoint set to localhost you can drop the server's public IP from
-   the `allow` list entirely — only loopback is needed.
+   the `allow` list entirely - only loopback is needed.
 
 If the proxy is not Cloudflare but a separate front-end (HAProxy, a TLS-
 terminating nginx), the same fix applies: purge the origin directly over
@@ -420,23 +424,23 @@ terminating nginx), the same fix applies: purge the origin directly over
 **Do not run a second full-page cache.** WP Rocket, W3 Total Cache, WP Super
 Cache, LiteSpeed Cache, WP Fastest Cache, Cache Enabler and friends all store
 rendered HTML themselves. Nginx caches whatever PHP hands back, so its copy is a
-copy of *their* copy — two caches, two lifetimes, two purge mechanisms, neither
+copy of *their* copy - two caches, two lifetimes, two purge mechanisms, neither
 aware of the other. When the plugin clears its cache, nginx happily keeps
 serving the old page. Symptoms are intermittent stale content that survives a
 purge and disappears when you clear the *other* plugin's cache.
 
 Pick one layer:
 
-* **Keep nginx** — switch page caching off in the other plugin. Its other
+* **Keep nginx** - switch page caching off in the other plugin. Its other
   features (minification, database cleanup, CDN, lazy-load) are fine to keep
   running alongside this plugin.
-* **Keep the plugin** — remove the `fastcgi_cache` directives from the vhost.
+* **Keep the plugin** - remove the `fastcgi_cache` directives from the vhost.
 
 The Settings page detects the common ones and warns you. It also warns about
 other nginx purgers (Nginx Helper, Nginx Cache, Proxy Cache Purge): not harmful,
 just redundant.
 
-Object caches — Redis Object Cache, Memcached, Docket Cache — are a different
+Object caches - Redis Object Cache, Memcached, Docket Cache - are a different
 layer entirely and work fine with this plugin. So do CDN and image plugins.
 
 ### Site Health
@@ -455,7 +459,7 @@ prefer not to rely on that, emit the name core already knows:
 add_header X-Cache-Status $upstream_cache_status always;
 ```
 
-Either header works — the plugin reads `X-FastCGI-Cache`, `X-Cache-Status` and
+Either header works - the plugin reads `X-FastCGI-Cache`, `X-Cache-Status` and
 `X-Proxy-Cache`, in that order.
 
 ---
@@ -479,19 +483,19 @@ grep -a -m1 -o "KEY: [^\r]*" /var/cache/nginx/wpcache/*/*/* | head
 **Purges return `403`.** The request is not coming from an address in the
 `allow` list. The plugin calls the site's public hostname, so the source is
 usually the server's own public IP. Behind Cloudflare (orange-clouded) or another
-proxy the source becomes unpredictable — see
+proxy the source becomes unpredictable - see
 [Purging behind a proxy or Cloudflare](#purging-behind-a-proxy-or-cloudflare) for
 the localhost fix.
 
 **Purge answers `200` but pages stay stale.** A global `open_file_cache` is
-holding descriptors of the deleted cache files — set `open_file_cache off;` in
+holding descriptors of the deleted cache files - set `open_file_cache off;` in
 the cached location.
 
 **The whole site goes stale after one edit, or edits show up nowhere.** Almost
 always `$uri` instead of `$request_uri` in the cache key.
 
 **Nothing happens at all.** Enable `WP_DEBUG` and `WP_DEBUG_LOG`; every attempt
-is written to `wp-content/debug.log` prefixed with `NCP:`, including the URL and
+is written to `wp-content/debug.log` prefixed with `NGXCP:`, including the URL and
 the HTTP status.
 
 ---
@@ -515,21 +519,26 @@ the original authors for the starting point.
   loaded with `WP_CACHE` on. Stacking two page caches produces stale pages that
   no single purge can fix.
 * A quieter notice for other Nginx purgers (Nginx Helper, Nginx Cache, Proxy
-  Cache Purge) — redundant rather than harmful.
+  Cache Purge) - redundant rather than harmful.
 * **Site Health fix.** Core's page-cache test reported "Page cache is not
   detected" on correctly configured sites, because its header list does not
   include `x-fastcgi-cache`. The plugin registers the header via
   `site_status_page_cache_supported_cache_headers`, which also clears the
   companion "a page cache plugin was not detected" line.
 * The self-test and warmer now read `X-Cache-Status` and `X-Proxy-Cache` as well
-  as `X-FastCGI-Cache`; the list is filterable via `ncp_cache_status_headers`.
+  as `X-FastCGI-Cache`; the list is filterable via `ngxcp_cache_status_headers`.
+* Settings page polish: a requirements note at the top (nginx + the
+  `ngx_cache_purge` module), the conflict warning is now a red `WARNING` box, the
+  WP-Cron panel shows a green confirmation and hides the crontab instructions
+  once the worker has run within the last 3 minutes, and the page footer links to
+  the setup guide and a GitHub star instead of the default WordPress credit.
 
 ### 1.1.0
 
 * **Optional background cache warmer.** When enabled, purged URLs are re-fetched
   on a cron tick so the next visitor gets a HIT instead of paying for the MISS. A
-  full purge warms a bounded set — the home page plus recent posts, capped by a
-  setting — never the whole sitemap at once. Off by default.
+  full purge warms a bounded set - the home page plus recent posts, capped by a
+  setting - never the whole sitemap at once. Off by default.
 * **Settings page** (Settings → Nginx Cache Purger): warmer toggle, purge
   endpoint / SSL-verify overrides, a WP-Cron panel (detect + optionally add
   `DISABLE_WP_CRON` to `wp-config.php`, plus the system-cron line and a last-run
@@ -537,13 +546,13 @@ the original authors for the starting point.
 * Endpoint and SSL-verify are now settable from the page as well as the filters;
   a code filter still wins.
 * **Settings** link on the plugin's row in the Plugins list.
-* Everything is optional — with nothing configured the plugin behaves exactly as
+* Everything is optional - with nothing configured the plugin behaves exactly as
   in 1.0.x.
 
 ### 1.0.2
 
-* New purge triggers: a new or edited comment — and approve / unapprove / spam /
-  trash of an existing one — now purges the post it belongs to.
+* New purge triggers: a new or edited comment - and approve / unapprove / spam /
+  trash of an existing one - now purges the post it belongs to.
 * Theme switch, nav-menu edits, widget changes and Customizer saves purge the
   whole cache, since they restyle or re-populate every page.
 * Several site-wide triggers firing in a single request collapse into one
@@ -555,9 +564,9 @@ the original authors for the starting point.
   client-supplied `Host` header, which could be spoofed to make the site issue
   an outbound request to an attacker-chosen host.
 * **Security:** SSL verification on the purge request is on by default, with the
-  `ncp_purge_sslverify` filter for setups that need it off.
-* Purging a post now also clears the home page, its taxonomy archives and — for
-  products — the shop page, instead of only its own permalink.
+  `ngxcp_purge_sslverify` filter for setups that need it off.
+* Purging a post now also clears the home page, its taxonomy archives and - for
+  products - the shop page, instead of only its own permalink.
 * Unpublishing, trashing and permanently deleting a post now purge; previously
   only transitions *to* `publish` did, so content pulled offline stayed cached.
 * Deleting a term now purges. `delete_term` fires after the term is gone, so the
@@ -570,7 +579,7 @@ the original authors for the starting point.
   JavaScript `alert()`, with a working spinner.
 * The front-end admin-bar button works; its script was only ever loaded in
   wp-admin.
-* Added the `ncp_purge_endpoint`, `ncp_purge_sslverify` and `ncp_paths_for_post`
+* Added the `ngxcp_purge_endpoint`, `ngxcp_purge_sslverify` and `ngxcp_paths_for_post`
   filters.
 
 ### 1.0.0

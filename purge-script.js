@@ -1,8 +1,8 @@
-/* global jQuery, ncp_ajax_object */
+/* global jQuery, ngxcp_ajax_object */
 jQuery(document).ready(function ($) {
     'use strict';
 
-    var $purgeButton = $('#wp-admin-bar-ncp-purge-nginx-cache .ab-item');
+    var $purgeButton = $('#wp-admin-bar-ngxcp-purge-nginx-cache .ab-item');
 
     if (!$purgeButton.length) {
         return;
@@ -23,11 +23,11 @@ jQuery(document).ready(function ($) {
      * @param {string} type    'success' or 'error'.
      * @param {string} message Text to display.
      */
-    function ncpNotice(type, message) {
-        $('.ncp-notice').remove();
+    function ngxcpNotice(type, message) {
+        $('.ngxcp-notice').remove();
 
         var $notice = $('<div/>', {
-            'class': 'ncp-notice notice notice-' + type + ' is-dismissible',
+            'class': 'ngxcp-notice notice notice-' + type + ' is-dismissible',
             'role': 'status',
             'aria-live': 'polite'
         }).append($('<p/>').text(message));
@@ -37,7 +37,7 @@ jQuery(document).ready(function ($) {
             'class': 'notice-dismiss'
         }).append($('<span/>', {
             'class': 'screen-reader-text',
-            'text': ncp_ajax_object.dismiss_label
+            'text': ngxcp_ajax_object.dismiss_label
         }));
 
         $dismiss.on('click', function () {
@@ -54,7 +54,7 @@ jQuery(document).ready(function ($) {
          * <hr class="wp-header-end"> right after the page title for precisely
          * this purpose, but plenty (the Dashboard among them) do not. Falling
          * back to #wpbody-content puts the notice *outside* .wrap, where core's
-         * margins make it run full width and sit above the <h1> — which is why
+         * margins make it run full width and sit above the <h1> - which is why
          * alignment looked inconsistent from screen to screen.
          */
         var $wrap = $('#wpbody-content .wrap').first();
@@ -73,16 +73,16 @@ jQuery(document).ready(function ($) {
                 $wrap.prepend($notice);
             }
         } else if ($('#wpbody-content').length) {
-            // No .wrap on this screen — indent it ourselves (see the CSS).
-            $notice.addClass('ncp-notice-standalone');
+            // No .wrap on this screen - indent it ourselves (see the CSS).
+            $notice.addClass('ngxcp-notice-standalone');
             $('#wpbody-content').prepend($notice);
         } else {
-            // Front end — no notice area, so float it.
-            $notice.addClass('ncp-toast');
+            // Front end - no notice area, so float it.
+            $notice.addClass('ngxcp-toast');
             $('body').append($notice);
         }
 
-        if ($notice.hasClass('ncp-toast')) {
+        if ($notice.hasClass('ngxcp-toast')) {
             window.setTimeout(function () {
                 $notice.fadeOut(200, function () {
                     $(this).remove();
@@ -97,7 +97,7 @@ jQuery(document).ready(function ($) {
     $purgeButton.on('click', function (e) {
         e.preventDefault();
 
-        if ($purgeButton.hasClass('ncp-purging')) {
+        if ($purgeButton.hasClass('ngxcp-purging')) {
             return;
         }
 
@@ -105,37 +105,37 @@ jQuery(document).ready(function ($) {
         var startedAt = Date.now();
 
         $purgeButton
-            .html('<span class="ab-icon dashicons-before dashicons-update"></span> ' + ncp_ajax_object.purging_message)
-            .addClass('ncp-purging');
+            .html('<span class="ab-icon dashicons-before dashicons-update"></span> ' + ngxcp_ajax_object.purging_message)
+            .addClass('ngxcp-purging');
 
         function restoreButton() {
             var elapsed = Date.now() - startedAt;
             var wait = Math.max(0, MIN_SPIN_MS - elapsed);
 
             window.setTimeout(function () {
-                $purgeButton.html(originalButtonText).removeClass('ncp-purging');
+                $purgeButton.html(originalButtonText).removeClass('ngxcp-purging');
             }, wait);
         }
 
         $.ajax({
-            url: ncp_ajax_object.ajax_url,
+            url: ngxcp_ajax_object.ajax_url,
             type: 'POST',
             data: {
-                action: 'ncp_purge_nginx_cache', // The AJAX action defined in PHP
-                nonce: ncp_ajax_object.nonce     // The security nonce
+                action: 'ngxcp_purge_nginx_cache', // The AJAX action defined in PHP
+                nonce: ngxcp_ajax_object.nonce     // The security nonce
             }
         }).done(function (response) {
             if (response && response.success) {
-                ncpNotice('success', (response.data && response.data.message) || ncp_ajax_object.success_message);
+                ngxcpNotice('success', (response.data && response.data.message) || ngxcp_ajax_object.success_message);
             } else {
                 var detail = (response && response.data && response.data.message) ? response.data.message : '';
-                ncpNotice('error', detail || ncp_ajax_object.error_message);
+                ngxcpNotice('error', detail || ngxcp_ajax_object.error_message);
             }
         }).fail(function (jqXHR, textStatus, errorThrown) {
             if (window.console) {
                 window.console.error('Nginx Cache Purger AJAX error:', textStatus, errorThrown);
             }
-            ncpNotice('error', ncp_ajax_object.error_message + ' (' + textStatus + ')');
+            ngxcpNotice('error', ngxcp_ajax_object.error_message + ' (' + textStatus + ')');
         }).always(restoreButton);
     });
 });

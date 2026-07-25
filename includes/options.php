@@ -16,14 +16,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Option key holding the settings array.
  */
-const NCP_OPTION = 'ncp_options';
+const NGXCP_OPTION = 'ngxcp_options';
 
 /**
  * Default settings. Chosen so a fresh install behaves exactly as 1.0.x did.
  *
  * @return array
  */
-function ncp_default_options() {
+function ngxcp_default_options() {
     return array(
         'warmer_enabled'  => false, // Cache warming off by default.
         'warm_max_urls'   => 15,    // Cap on URLs warmed after a full purge.
@@ -37,12 +37,12 @@ function ncp_default_options() {
  *
  * @return array
  */
-function ncp_get_options() {
-    $saved = get_option( NCP_OPTION, array() );
+function ngxcp_get_options() {
+    $saved = get_option( NGXCP_OPTION, array() );
     if ( ! is_array( $saved ) ) {
         $saved = array();
     }
-    return array_merge( ncp_default_options(), $saved );
+    return array_merge( ngxcp_default_options(), $saved );
 }
 
 /**
@@ -51,7 +51,7 @@ function ncp_get_options() {
  * @param string $key
  * @return mixed
  */
-function ncp_get_option( $key ) {
-    $options = ncp_get_options();
+function ngxcp_get_option( $key ) {
+    $options = ngxcp_get_options();
     return isset( $options[ $key ] ) ? $options[ $key ] : null;
 }

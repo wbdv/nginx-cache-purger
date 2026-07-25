@@ -1,9 +1,0 @@
-# Files excluded from a distributable plugin zip / WordPress.org deploy.
-.git
-.gitignore
-.distignore
-.github
-README.md
-*.bak
-*.bak-*
-*.orig

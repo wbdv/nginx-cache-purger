@@ -1,16 +1,16 @@
-/* global jQuery, ncp_settings */
+/* global jQuery, ngxcp_settings */
 jQuery(function ($) {
     'use strict';
 
-    $('#ncp-cache-test').on('click', function () {
+    $('#ngxcp-cache-test').on('click', function () {
         var $btn = $(this),
-            $out = $('#ncp-cache-test-result');
+            $out = $('#ngxcp-cache-test-result');
         $btn.prop('disabled', true);
-        $out.text(ncp_settings.testing);
+        $out.text(ngxcp_settings.testing);
 
-        $.post(ncp_settings.ajax_url, {
-            action: 'ncp_cache_test',
-            nonce: ncp_settings.test_nonce
+        $.post(ngxcp_settings.ajax_url, {
+            action: 'ngxcp_cache_test',
+            nonce: ngxcp_settings.test_nonce
         }).done(function (r) {
             if (r && r.success) {
                 $out.html('<span style="color:#00a32a;">' + r.data.message + '</span>');
@@ -24,15 +24,15 @@ jQuery(function ($) {
         });
     });
 
-    $('#ncp-cron-setup').on('click', function () {
+    $('#ngxcp-cron-setup').on('click', function () {
         var $btn = $(this),
-            $out = $('#ncp-cron-setup-result');
+            $out = $('#ngxcp-cron-setup-result');
         $btn.prop('disabled', true);
-        $out.text(ncp_settings.working);
+        $out.text(ngxcp_settings.working);
 
-        $.post(ncp_settings.ajax_url, {
-            action: 'ncp_cron_setup',
-            nonce: ncp_settings.cron_nonce
+        $.post(ngxcp_settings.ajax_url, {
+            action: 'ngxcp_cron_setup',
+            nonce: ngxcp_settings.cron_nonce
         }).done(function (r) {
             if (r && r.success) {
                 // Update the UI directly rather than waiting for a refresh: the

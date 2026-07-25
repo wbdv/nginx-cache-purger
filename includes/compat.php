@@ -7,7 +7,7 @@
  *
  * 1. Detecting other full-page caches. nginx caches what PHP returns, so a
  *    second plugin that also stores rendered HTML means two caches with two
- *    lifetimes and two purge mechanisms — neither of which knows about the
+ *    lifetimes and two purge mechanisms - neither of which knows about the
  *    other. Stale pages follow. We warn; we never deactivate anything.
  * 2. Telling Site Health that the page cache it cannot see is in fact there.
  *
@@ -26,9 +26,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return string[] Lower-case header names.
  */
-function ncp_cache_status_headers() {
+function ngxcp_cache_status_headers() {
     return (array) apply_filters(
-        'ncp_cache_status_headers',
+        'ngxcp_cache_status_headers',
         array( 'x-fastcgi-cache', 'x-cache-status', 'x-proxy-cache' )
     );
 }
@@ -39,8 +39,8 @@ function ncp_cache_status_headers() {
  * @param array|WP_Error $response Response from wp_remote_get().
  * @return string Status such as HIT, MISS, BYPASS; '' when no header was sent.
  */
-function ncp_read_cache_status( $response ) {
-    foreach ( ncp_cache_status_headers() as $header ) {
+function ngxcp_read_cache_status( $response ) {
+    foreach ( ngxcp_cache_status_headers() as $header ) {
         $value = wp_remote_retrieve_header( $response, $header );
         if ( is_array( $value ) ) {
             $value = reset( $value );
@@ -67,13 +67,13 @@ function ncp_read_cache_status( $response ) {
  * @param array $headers Header name => validation callback (or null).
  * @return array
  */
-function ncp_site_status_cache_headers( $headers ) {
+function ngxcp_site_status_cache_headers( $headers ) {
     // Same matcher core uses for x-cache-status: the value must contain HIT.
     $is_hit = static function ( $value ) {
         return 1 === preg_match( '/(^| |,)HIT(,| |$)/i', (string) $value );
     };
 
-    foreach ( ncp_cache_status_headers() as $header ) {
+    foreach ( ngxcp_cache_status_headers() as $header ) {
         if ( ! isset( $headers[ $header ] ) ) {
             $headers[ $header ] = $is_hit;
         }
@@ -81,7 +81,7 @@ function ncp_site_status_cache_headers( $headers ) {
 
     return $headers;
 }
-add_filter( 'site_status_page_cache_supported_cache_headers', 'ncp_site_status_cache_headers' );
+add_filter( 'site_status_page_cache_supported_cache_headers', 'ngxcp_site_status_cache_headers' );
 
 /**
  * Plugins that cache rendered pages themselves, keyed by directory slug.
@@ -92,9 +92,9 @@ add_filter( 'site_status_page_cache_supported_cache_headers', 'ncp_site_status_c
  *
  * @return array<string, array{name: string, type: string}>
  */
-function ncp_known_cache_plugins() {
+function ngxcp_known_cache_plugins() {
     return array(
-        // Full-page caches — these store rendered HTML of their own.
+        // Full-page caches - these store rendered HTML of their own.
         'wp-rocket'               => array( 'name' => 'WP Rocket',              'type' => 'page-cache' ),
         'w3-total-cache'          => array( 'name' => 'W3 Total Cache',         'type' => 'page-cache' ),
         'wp-super-cache'          => array( 'name' => 'WP Super Cache',         'type' => 'page-cache' ),
@@ -114,7 +114,7 @@ function ncp_known_cache_plugins() {
         'cachify'                 => array( 'name' => 'Cachify',                'type' => 'page-cache' ),
         'simple-cache'            => array( 'name' => 'Simple Cache',           'type' => 'page-cache' ),
 
-        // Rival purgers — harmless but redundant, and they can fight over rules.
+        // Rival purgers - harmless but redundant, and they can fight over rules.
         'nginx-helper'            => array( 'name' => 'Nginx Helper',           'type' => 'purger' ),
         'nginx-cache'             => array( 'name' => 'Nginx Cache',            'type' => 'purger' ),
         'varnish-http-purge'      => array( 'name' => 'Proxy Cache Purge',      'type' => 'purger' ),
@@ -129,7 +129,7 @@ function ncp_known_cache_plugins() {
  *
  * @return string[]
  */
-function ncp_active_plugin_slugs() {
+function ngxcp_active_plugin_slugs() {
     $active = (array) get_option( 'active_plugins', array() );
 
     if ( is_multisite() ) {
@@ -150,12 +150,12 @@ function ncp_active_plugin_slugs() {
  *
  * @return array<int, array{name: string, type: string}>
  */
-function ncp_detect_cache_conflicts() {
-    $known  = ncp_known_cache_plugins();
+function ngxcp_detect_cache_conflicts() {
+    $known  = ngxcp_known_cache_plugins();
     $found  = array();
     $matched_page_cache = false;
 
-    foreach ( ncp_active_plugin_slugs() as $slug ) {
+    foreach ( ngxcp_active_plugin_slugs() as $slug ) {
         if ( isset( $known[ $slug ] ) ) {
             $found[] = $known[ $slug ];
             if ( 'page-cache' === $known[ $slug ]['type'] ) {
@@ -175,19 +175,19 @@ function ncp_detect_cache_conflicts() {
         && defined( 'WP_CACHE' ) && WP_CACHE
     ) {
         $found[] = array(
-            'name' => __( 'an unidentified page cache (advanced-cache.php drop-in)', 'nginx-cache-purger' ),
+            'name' => __( 'an unidentified page cache (advanced-cache.php drop-in)', 'reqad-cache-purger' ),
             'type' => 'page-cache',
         );
     }
 
-    return (array) apply_filters( 'ncp_cache_conflicts', $found );
+    return (array) apply_filters( 'ngxcp_cache_conflicts', $found );
 }
 
 /**
  * Render the conflict warning. Called at the top of the settings page.
  */
-function ncp_render_conflict_notice() {
-    $conflicts = ncp_detect_cache_conflicts();
+function ngxcp_render_conflict_notice() {
+    $conflicts = ngxcp_detect_cache_conflicts();
     if ( empty( $conflicts ) ) {
         return;
     }
@@ -204,9 +204,10 @@ function ncp_render_conflict_notice() {
 
     if ( $page_caches ) {
         ?>
-        <div class="notice notice-warning">
-            <p>
-                <strong><?php esc_html_e( 'Another page cache is active.', 'nginx-cache-purger' ); ?></strong>
+        <div class="notice notice-error is-dismissible" style="padding:4px 15px;font-size:14px;margin:16px 0;">
+            <h4 style="font-size:16px;color:red;margin:0px"><?php esc_html_e( 'WARNING', 'reqad-cache-purger' ); ?></h4>
+            <p style="font-size:14px;">
+                <strong><?php esc_html_e( 'Another page cache is active.', 'reqad-cache-purger' ); ?></strong>
                 <?php
                 echo esc_html(
                     sprintf(
@@ -215,18 +216,16 @@ function ncp_render_conflict_notice() {
                             '%s also caches rendered pages.',
                             '%s also cache rendered pages.',
                             count( $page_caches ),
-                            'nginx-cache-purger'
+                            'reqad-cache-purger'
                         ),
                         implode( ', ', $page_caches )
                     )
                 );
                 ?>
             </p>
-            <p>
-                <?php esc_html_e( 'nginx caches whatever PHP returns, so its copy is made from the other plugin\'s copy. You end up with two caches, two expiry times and two purge mechanisms that do not know about each other — when that plugin clears its cache, nginx keeps serving the old page, and visitors see stale content.', 'nginx-cache-purger' ); ?>
-            </p>
-            <p>
-                <?php esc_html_e( 'Pick one layer. Either turn off page caching in the other plugin (its minification, database and CDN features are fine to keep), or disable the FastCGI cache in your vhost and let that plugin do the caching.', 'nginx-cache-purger' ); ?>
+            <p style="font-size:14px;max-width:70em;">
+                <?php esc_html_e( 'nginx caches whatever PHP returns, so its copy is made from the other plugin\'s copy. You end up with two caches, two expiry times and two purge mechanisms that do not know about each other - when that plugin clears its cache, nginx keeps serving the old page, and visitors see stale content.', 'reqad-cache-purger' ); ?>
+                <?php esc_html_e( 'Pick one layer. Either turn off page caching in the other plugin (its minification, database and CDN features are fine to keep), or disable the FastCGI cache in your vhost and let that plugin do the caching.', 'reqad-cache-purger' ); ?>
             </p>
         </div>
         <?php
@@ -244,13 +243,13 @@ function ncp_render_conflict_notice() {
                             '%s also purges a server-side cache.',
                             '%s also purge a server-side cache.',
                             count( $purgers ),
-                            'nginx-cache-purger'
+                            'reqad-cache-purger'
                         ),
                         implode( ', ', $purgers )
                     )
                 );
                 ?>
-                <?php esc_html_e( 'That is not harmful, but the two will issue overlapping purges. Running just one purger keeps the behaviour predictable.', 'nginx-cache-purger' ); ?>
+                <?php esc_html_e( 'That is not harmful, but the two will issue overlapping purges. Running just one purger keeps the behaviour predictable.', 'reqad-cache-purger' ); ?>
             </p>
         </div>
         <?php

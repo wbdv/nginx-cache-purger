@@ -1,31 +1,43 @@
-/* Nginx Cache Purger — admin bar button + notices */
+/* Nginx Cache Purger - admin bar button + notices */
 
 /* Slightly smaller admin-bar icon than the core dashicon default (~16px).
    Covers both the resting icon (dashicons-image-rotate) and the spinner
    (dashicons-update), since both render through .ab-icon:before. */
-#wpadminbar #wp-admin-bar-ncp-purge-nginx-cache .ab-icon:before {
+#wpadminbar #wp-admin-bar-ngxcp-purge-nginx-cache .ab-icon:before {
     font-size: 14px;
     line-height: 24px;
 }
 
 /* Button state while a purge is in flight. */
-#wpadminbar .ncp-purging {
+#wpadminbar .ngxcp-purging {
     pointer-events: none;
     opacity: .8;
 }
 
-#wpadminbar .ncp-purging .ab-icon.dashicons-update:before {
-    animation: ncp-spin 1s infinite linear;
+/* Keep the spinner glyph the same size and position as the resting icon.
+   Rotating a bare inline :before makes it shrink and ride up, because it spins
+   around the text baseline rather than its own centre. Give it an explicit
+   square box, centre the glyph in it and align it to the middle of the bar so
+   the animation turns in place. */
+#wpadminbar .ngxcp-purging .ab-icon.dashicons-update:before {
+    animation: ngxcp-spin 1s infinite linear;
     display: inline-block;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    line-height: 24px;
+    text-align: center;
+    vertical-align: middle;
+    transform-origin: center center;
 }
 
-@keyframes ncp-spin {
+@keyframes ngxcp-spin {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #wpadminbar .ncp-purging .ab-icon.dashicons-update:before {
+    #wpadminbar .ngxcp-purging .ab-icon.dashicons-update:before {
         animation: none;
     }
 }
@@ -39,17 +51,17 @@
  * The #wpbody-content prefix outranks core's .wrap .notice rule without
  * needing !important.
  */
-#wpbody-content .ncp-notice {
+#wpbody-content .ngxcp-notice {
     margin: 16px 0;
 }
 
 /* Screens with no .wrap: supply the horizontal indent core would have given. */
-#wpbody-content .ncp-notice.ncp-notice-standalone {
+#wpbody-content .ngxcp-notice.ngxcp-notice-standalone {
     margin: 16px 20px;
 }
 
 @media screen and (max-width: 782px) {
-    #wpbody-content .ncp-notice.ncp-notice-standalone {
+    #wpbody-content .ngxcp-notice.ngxcp-notice-standalone {
         margin: 16px 10px;
     }
 }
@@ -58,7 +70,7 @@
  * Front-end toast. Inside wp-admin the notice is injected into the normal
  * notice area and inherits core's .notice styling, so nothing else is needed.
  */
-.ncp-toast {
+.ngxcp-toast {
     position: fixed;
     top: 42px;
     right: 20px;
@@ -71,28 +83,28 @@
     font: 400 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
     box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
     border-radius: 2px;
-    animation: ncp-toast-in .18s ease-out;
+    animation: ngxcp-toast-in .18s ease-out;
 }
 
-.ncp-toast.notice-success { border-left-color: #00a32a; }
-.ncp-toast.notice-error   { border-left-color: #d63638; }
+.ngxcp-toast.notice-success { border-left-color: #00a32a; }
+.ngxcp-toast.notice-error   { border-left-color: #d63638; }
 
-.ncp-toast p {
+.ngxcp-toast p {
     margin: 0;
     padding: 0;
 }
 
-@keyframes ncp-toast-in {
+@keyframes ngxcp-toast-in {
     from { opacity: 0; transform: translateY(-6px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ncp-toast { animation: none; }
+    .ngxcp-toast { animation: none; }
 }
 
-/* Dismiss button for the toast — mirrors core's .notice-dismiss. */
-.ncp-toast .notice-dismiss {
+/* Dismiss button for the toast - mirrors core's .notice-dismiss. */
+.ngxcp-toast .notice-dismiss {
     position: absolute;
     top: 0;
     right: 1px;
@@ -104,7 +116,7 @@
     cursor: pointer;
 }
 
-.ncp-toast .notice-dismiss:before {
+.ngxcp-toast .notice-dismiss:before {
     content: "\f153";
     display: block;
     height: 20px;
@@ -114,14 +126,14 @@
     -webkit-font-smoothing: antialiased;
 }
 
-.ncp-toast .notice-dismiss:hover:before,
-.ncp-toast .notice-dismiss:focus:before {
+.ngxcp-toast .notice-dismiss:hover:before,
+.ngxcp-toast .notice-dismiss:focus:before {
     color: #d63638;
 }
 
 /* The admin bar sits above the toast on small screens; nudge it down. */
 @media screen and (max-width: 782px) {
-    .ncp-toast {
+    .ngxcp-toast {
         top: 56px;
         right: 10px;
         left: 10px;
