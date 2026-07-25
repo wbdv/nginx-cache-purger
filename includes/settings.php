@@ -116,9 +116,9 @@ add_action( 'admin_enqueue_scripts', 'ngxcp_settings_assets' );
  * @return string
  */
 function ngxcp_settings_footer_text( $text ) {
-    $guide = '<a href="https://github.com/wbdv/nginx-cache-purger#readme" target="_blank" rel="noopener noreferrer">'
+    $guide = '<a href="https://github.com/wbdv/reqad-cache-purger#readme" target="_blank" rel="noopener noreferrer">'
         . esc_html__( 'Read the nginx configuration guide', 'reqad-cache-purger' ) . '</a>';
-    $star  = '<a href="https://github.com/wbdv/nginx-cache-purger" target="_blank" rel="noopener noreferrer">'
+    $star  = '<a href="https://github.com/wbdv/reqad-cache-purger" target="_blank" rel="noopener noreferrer">'
         . esc_html__( 'star it on GitHub', 'reqad-cache-purger' ) . ' &#9733;</a>';
 
     $line = sprintf(
@@ -315,7 +315,7 @@ function ngxcp_settings_render() {
         printf(
             /* translators: 1: link to the setup guide on GitHub, 2: link to reqad.com */
             esc_html__( 'this plugin does not cache anything itself - it needs nginx with FastCGI caching and the ngx_cache_purge module compiled in (%1$s). It is the cache companion for %2$s, the open-source hosting control panel, which ships nginx already built with that module, so there is nothing to compile. It works exactly the same on any server that has nginx and the module.', 'reqad-cache-purger' ),
-            '<a href="https://github.com/wbdv/nginx-cache-purger#readme" target="_blank" rel="noopener noreferrer">' . esc_html__( 'setup guide', 'reqad-cache-purger' ) . '</a>',
+            '<a href="https://github.com/wbdv/reqad-cache-purger#readme" target="_blank" rel="noopener noreferrer">' . esc_html__( 'setup guide', 'reqad-cache-purger' ) . '</a>',
             '<a href="https://reqad.com" target="_blank" rel="noopener noreferrer">Reqad</a>'
         );
         ?></p>

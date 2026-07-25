@@ -241,7 +241,7 @@ nginx -t && systemctl reload nginx
 
 ```bash
 cd wp-content/plugins
-git clone https://github.com/wbdv/nginx-cache-purger.git
+git clone https://github.com/wbdv/reqad-cache-purger.git
 wp plugin activate nginx-cache-purger
 ```
 
