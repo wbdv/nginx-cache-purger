@@ -6,6 +6,7 @@
 #wpadminbar #wp-admin-bar-ngxcp-purge-nginx-cache .ab-icon:before {
     font-size: 14px;
     line-height: 24px;
+	padding-top: 1px;
 }
 
 /* Button state while a purge is in flight. */
@@ -14,21 +15,35 @@
     opacity: .8;
 }
 
-/* Keep the spinner glyph the same size and position as the resting icon.
-   Rotating a bare inline :before makes it shrink and ride up, because it spins
-   around the text baseline rather than its own centre. Give it an explicit
-   square box, centre the glyph in it and align it to the middle of the bar so
-   the animation turns in place. */
-#wpadminbar .ngxcp-purging .ab-icon.dashicons-update:before {
-    animation: ngxcp-spin 1s infinite linear;
-    display: inline-block;
-    width: 24px;
+/*
+ * Spinner. Core styles .ab-icon:before with `float: left` and `top: 2px`, so a
+ * square box plus vertical-align could not centre it (vertical-align is ignored
+ * on floated elements) and the 2px nudge dropped it to the bottom of the bar.
+ * Instead turn the icon span into a flex box the full height of the bar and
+ * centre the glyph inside it, so it sits in the vertical middle regardless of
+ * bar height - a touch larger than the resting icon so the motion reads clearly.
+ */
+#wpadminbar #wp-admin-bar-ngxcp-purge-nginx-cache .ngxcp-purging .ab-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
     height: 24px;
-    font-size: 14px;
-    line-height: 24px;
-    text-align: center;
-    vertical-align: middle;
-    transform-origin: center center;
+    vertical-align: top;
+    font-size: 20px;
+}
+
+#wpadminbar #wp-admin-bar-ngxcp-purge-nginx-cache .ngxcp-purging .ab-icon.dashicons-update:before {
+    float: none;
+    position: static;
+    top: 0;
+    margin: 0;
+    width: auto;
+    height: auto;
+    font-size: 18px;
+    line-height: 1;
+    animation: ngxcp-spin 1s infinite linear;
+    transform-origin: 50% 50%;
 }
 
 @keyframes ngxcp-spin {
@@ -37,7 +52,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #wpadminbar .ngxcp-purging .ab-icon.dashicons-update:before {
+    #wpadminbar #wp-admin-bar-ngxcp-purge-nginx-cache .ngxcp-purging .ab-icon.dashicons-update:before {
         animation: none;
     }
 }
